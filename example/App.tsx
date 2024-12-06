@@ -185,7 +185,11 @@ export default function App() {
 
         <Group name="Output">
           <View style={styles.container}>
-            <ScrollView style={styles.outputContainer}>
+            <ScrollView
+              style={styles.outputContainer}
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={{ flex: 1, height: 500 }}
+            >
               <Text style={styles.output}>{output}</Text>
             </ScrollView>
           </View>
@@ -238,7 +242,7 @@ const styles = {
     borderRadius: 10,
     padding: 20,
   },
-  container: { flex: 1, padding: 16, backgroundColor: "#fff" },
+  container: { flex: 1, flexGrow: 1, padding: 16, backgroundColor: "#fff" },
   view: {
     flex: 1,
     height: 200,
@@ -260,6 +264,8 @@ const styles = {
     marginBottom: 16,
   },
   outputContainer: {
+    flex: 1,
+    flexGrow: 1,
     marginTop: 16,
     borderWidth: 1,
     borderColor: "gray",
@@ -268,6 +274,8 @@ const styles = {
     maxHeight: "50%",
   },
   output: {
+    flex: 1,
+    flexGrow: 1,
     fontSize: 14,
     color: "black",
   },

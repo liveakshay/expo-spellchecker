@@ -21,7 +21,8 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "expo.modules.spellchecker.example"
+      "package": "expo.modules.spellchecker.example",
+      "permissions": ["READ_USER_DICTIONARY", "WRITE_USER_DICTIONARY"]
     },
     "web": {
       "favicon": "./assets/favicon.png"
