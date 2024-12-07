@@ -1,19 +1,9 @@
-import type { StyleProp, ViewStyle } from 'react-native';
-
-export type OnLoadEventPayload = {
-  url: string;
-};
-
-export type ExpoSpellcheckerModuleEvents = {
-  onChange: (params: ChangeEventPayload) => void;
-};
-
-export type ChangeEventPayload = {
-  value: string;
-};
+import type { StyleProp, ViewStyle } from "react-native";
 
 export type ExpoSpellcheckerViewProps = {
-  url: string;
-  onLoad: (event: { nativeEvent: OnLoadEventPayload }) => void;
+  keyboardType?: string;
+  spellCheckingType?: boolean;
+  autocorrectionType?: boolean;
+  hidden?: boolean;
   style?: StyleProp<ViewStyle>;
 };

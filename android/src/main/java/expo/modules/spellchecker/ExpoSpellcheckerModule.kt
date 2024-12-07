@@ -1,16 +1,26 @@
 package expo.modules.spellchecker
 
+import android.util.Log
 import android.content.Context
-import android.provider.UserDictionary
+import android.database.sqlite.SQLiteDatabase
+import android.content.ContentValues
 import android.view.textservice.*
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.runBlocking
 import java.net.URL
+import android.net.Uri
+
+import android.Manifest
+import android.content.pm.PackageManager
 
 class ExpoSpellcheckerModule : Module(), SpellCheckerSession.SpellCheckerSessionListener {
     private var spellCheckerSession: SpellCheckerSession? = null
+
+    private lateinit var dbHelper: LearnedWordsDBHelper
+    private lateinit var database: SQLiteDatabase
+
     private val ignoredWords = mutableSetOf<String>()
 
     private var spellCheckDeferred: CompletableDeferred<List<String>>? = null
@@ -18,36 +28,28 @@ class ExpoSpellcheckerModule : Module(), SpellCheckerSession.SpellCheckerSession
     override fun definition() = ModuleDefinition {
         Name("ExpoSpellchecker")
 
-        Constants("PI" to Math.PI)
-
-        Events("onChange")
-
-        Function("hello") {
-            "Hello world! 👋"
-        }
-
         AsyncFunction("checkSpelling") { input: String, language: String ->
-            val lastWord = extractLastWord(input)
+            val lastWord = extractLastWord(input).lowercase()
 
-            if (ignoredWords.contains(lastWord)) {
+            if (ignoredWords.contains(lastWord) || isWordInDatabase(lastWord)) {
                 emptyList<String>()
             } else {
-                runBlocking { checkSpellingAsync(lastWord) }
+                runBlocking { getSentenceSuggestionsAsync(input) }
             }
         }
 
         AsyncFunction("getCompletions") { input: String, language: String ->
-            val lastWord = extractLastWord(input)
+            val lastWord = extractLastWord(input).lowercase()
 
-            if (ignoredWords.contains(lastWord)) {
+            if (ignoredWords.contains(lastWord) || isWordInDatabase(lastWord)) {
                 emptyList<String>()
             } else {
-                runBlocking { getSentenceSuggestionsAsync(lastWord) }
+                runBlocking { getSentenceSuggestionsAsync(input) }
             }
         }
 
         AsyncFunction("ignoreWord") { word: String ->
-            ignoredWords.add(word)
+            ignoredWords.add(word.lowercase())
         }
 
         AsyncFunction("getIgnoredWords") {
@@ -55,15 +57,38 @@ class ExpoSpellcheckerModule : Module(), SpellCheckerSession.SpellCheckerSession
         }
 
         AsyncFunction("learnWord") { word: String ->
-            UserDictionary.Words.addWord(appContext.reactContext, word, 100, UserDictionary.Words.LOCALE_TYPE_ALL)
+            val lowercaseWord = word.lowercase()
+            val locale = java.util.Locale.getDefault().toString()
+            val newFrequency = getWordFrequency(lowercaseWord) + 1
+
+            val contentValues = ContentValues().apply {
+                put(LearnedWordsContract.COLUMN_WORD, lowercaseWord)
+                put(LearnedWordsContract.COLUMN_FREQUENCY, newFrequency)
+                put(LearnedWordsContract.COLUMN_LOCALE, locale)
+            }
+
+            database.insertWithOnConflict(
+                LearnedWordsContract.TABLE_NAME,
+                null,
+                contentValues,
+                SQLiteDatabase.CONFLICT_REPLACE
+            )
+
+            // Log.d("ExpoSpellchecker", "Learned word: $lowercaseWord, frequency updated to $newFrequency.")
         }
 
         AsyncFunction("unlearnWord") { word: String ->
-            removeWordFromUserDictionary(word)
+            val lowercaseWord = word.lowercase()
+            val rowsDeleted = database.delete(
+                LearnedWordsContract.TABLE_NAME,
+                "${LearnedWordsContract.COLUMN_WORD} = ?",
+                arrayOf(lowercaseWord)
+            )
+            // Log.d("ExpoSpellchecker", "Unlearned word: $lowercaseWord, rows deleted: $rowsDeleted")
         }
 
         AsyncFunction("hasLearnedWord") { word: String ->
-            isWordInUserDictionary(word)
+            isWordInDatabase(word.lowercase())
         }
 
         AsyncFunction("getAvailableLanguages") { ->
@@ -90,38 +115,46 @@ class ExpoSpellcheckerModule : Module(), SpellCheckerSession.SpellCheckerSession
             listOf(java.util.Locale.getDefault().language)
         }
 
-        AsyncFunction("setValueAsync") { value: String ->
-            sendEvent("onChange", mapOf("value" to value))
-        }
-
         View(ExpoSpellcheckerView::class) {
-            Prop("url") { view: ExpoSpellcheckerView, url: URL ->
-                view.webView.loadUrl(url.toString())
+            // Register props from TypeScript
+            Prop("keyboardType") { view: ExpoSpellcheckerView, type: String? ->
+                view.setKeyboardType(type)
             }
+
+            Prop("spellCheckingType") { view: ExpoSpellcheckerView, enabled: Boolean ->
+                view.setSpellCheckingType(enabled)
+            }
+
+            Prop("autocorrectionType") { view: ExpoSpellcheckerView, enabled: Boolean ->
+                view.setAutocorrectionType(enabled)
+            }
+
+            Prop("hidden") { view: ExpoSpellcheckerView, hidden: Boolean ->
+                view.setHidden(hidden)
+            }
+
             Events("onLoad")
         }
 
         OnCreate {
-            val textServicesManager =
-                appContext.reactContext?.getSystemService(Context.TEXT_SERVICES_MANAGER_SERVICE) as? TextServicesManager
-            spellCheckerSession = textServicesManager?.newSpellCheckerSession(null, null, this@ExpoSpellcheckerModule, true)
+            dbHelper = LearnedWordsDBHelper(appContext.reactContext!!)
+            database = dbHelper.writableDatabase
+
+            val textServicesManager = appContext.reactContext?.getSystemService(Context.TEXT_SERVICES_MANAGER_SERVICE) as? TextServicesManager
+            spellCheckerSession = textServicesManager?.newSpellCheckerSession(
+                null, null, this@ExpoSpellcheckerModule, true
+            )
         }
 
         OnDestroy {
+            database.close()
             spellCheckerSession?.close()
-            spellCheckerSession = null
         }
     }
 
-    private suspend fun checkSpellingAsync(word: String): List<String> {
+    private suspend fun getSentenceSuggestionsAsync(input: String): List<String> {
         spellCheckDeferred = CompletableDeferred()
-        spellCheckerSession?.getSuggestions(TextInfo(word), 1)
-        return spellCheckDeferred?.await() ?: emptyList()
-    }
-
-    private suspend fun getSentenceSuggestionsAsync(word: String): List<String> {
-        spellCheckDeferred = CompletableDeferred()
-        spellCheckerSession?.getSentenceSuggestions(arrayOf(TextInfo(word)), 5)
+        spellCheckerSession?.getSentenceSuggestions(arrayOf(TextInfo(input)), 10)
         return spellCheckDeferred?.await() ?: emptyList()
     }
 
@@ -142,34 +175,42 @@ class ExpoSpellcheckerModule : Module(), SpellCheckerSession.SpellCheckerSession
         spellCheckDeferred?.complete(completions)
     }
 
-    private fun extractLastWord(input: String): String {
-        val words = input.trim().split(" ")
-        return words.lastOrNull() ?: input
+    private fun getWordFrequency(word: String): Int {
+        val lowercaseWord = word.lowercase()
+        val cursor = database.query(
+            LearnedWordsContract.TABLE_NAME,
+            arrayOf(LearnedWordsContract.COLUMN_FREQUENCY),
+            "${LearnedWordsContract.COLUMN_WORD} = ?",
+            arrayOf(lowercaseWord),
+            null, null, null
+        )
+
+        val frequency = if (cursor.moveToFirst()) {
+            cursor.getInt(cursor.getColumnIndexOrThrow(LearnedWordsContract.COLUMN_FREQUENCY))
+        } else {
+            0
+        }
+        cursor.close()
+        return frequency
     }
 
-    private fun isWordInUserDictionary(word: String): Boolean {
-        val cursor = appContext.reactContext?.contentResolver?.query(
-            UserDictionary.Words.CONTENT_URI,
-            arrayOf(UserDictionary.Words.WORD),
-            "${UserDictionary.Words.WORD} = ?",
-            arrayOf(word),
-            null
+    private fun isWordInDatabase(word: String): Boolean {
+        val lowercaseWord = word.lowercase()
+        val cursor = database.query(
+            LearnedWordsContract.TABLE_NAME,
+            arrayOf(LearnedWordsContract.COLUMN_WORD),
+            "${LearnedWordsContract.COLUMN_WORD} = ?",
+            arrayOf(lowercaseWord),
+            null, null, null
         )
-        val exists = cursor?.count ?: 0 > 0
-        cursor?.close()
+
+        val exists = cursor.count > 0
+        cursor.close()
         return exists
     }
 
-    private fun removeWordFromUserDictionary(word: String): Boolean {
-        return try {
-            val uri = UserDictionary.Words.CONTENT_URI
-            val selection = "${UserDictionary.Words.WORD} = ?"
-            val selectionArgs = arrayOf(word)
-            val rowsDeleted = appContext.reactContext?.contentResolver?.delete(uri, selection, selectionArgs)
-            (rowsDeleted ?: 0) > 0
-        } catch (e: Exception) {
-            e.printStackTrace()
-            false
-        }
+    private fun extractLastWord(input: String): String {
+        val words = input.trim().split(" ")
+        return words.lastOrNull() ?: input
     }
 }

@@ -86,7 +86,7 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace 'expo.modules.spellchecker.example'
+    namespace "expo.modules.spellchecker.example"
     defaultConfig {
         applicationId 'expo.modules.spellchecker.example'
         minSdkVersion rootProject.ext.minSdkVersion

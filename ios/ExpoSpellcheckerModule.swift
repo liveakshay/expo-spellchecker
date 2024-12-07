@@ -3,7 +3,9 @@ import ExpoModulesCore
 public class ExpoSpellcheckerModule: Module {
 
   private let sharedTextChecker = UITextChecker()
-
+  private func log(_ message: String) {
+    NSLog("ExpoSpellchecker: %@", message)
+  }
 
   // Each module class must implement the definition function. The definition consists of components
   // that describes the module's functionality and behavior.
@@ -14,20 +16,6 @@ public class ExpoSpellcheckerModule: Module {
     // Can be inferred from module's class name, but it's recommended to set it explicitly for clarity.
     // The module will be accessible from `requireNativeModule('ExpoSpellchecker')` in JavaScript.
     Name("ExpoSpellchecker")
-
-    // Sets constant properties on the module. Can take a dictionary or a closure that returns a dictionary.
-    Constants([
-      "PI": Double.pi
-    ])
-
-    // Defines event names that the module can send to JavaScript.
-    Events("onChange")
-
-    // Defines a JavaScript synchronous function that runs the native code on the JavaScript thread.
-    Function("hello") {
-      return "Hello world! 👋"
-    }
-
 
     AsyncFunction("checkSpelling") { (input: String, language: String) -> [String] in
       return await withCheckedContinuation { continuation in
@@ -41,6 +29,13 @@ public class ExpoSpellcheckerModule: Module {
             lastWordStartIndex = input.startIndex // No space found, start at the beginning
           }
           let lastWord = String(input[lastWordStartIndex...]) // Extract the last word
+
+          // Check if the word is ignored or learned
+          if self.sharedTextChecker.ignoredWords?.contains(lastWord) == true || UITextChecker.hasLearnedWord(lastWord) {
+            continuation.resume(returning: [])
+            return
+          }
+
           let range = NSRange(location: lastWordStartIndex.utf16Offset(in: input), length: lastWord.utf16.count)
           
           // Check for misspellings
@@ -71,31 +66,27 @@ public class ExpoSpellcheckerModule: Module {
           // Find the range of the last word in the input
           let lastSpaceIndex = input.lastIndex(of: " ") // Find the last space character
           let lastWordStartIndex: String.Index
+
           if let spaceIndex = lastSpaceIndex {
             lastWordStartIndex = input.index(after: spaceIndex) // Start after the last space
           } else {
             lastWordStartIndex = input.startIndex // No space found, start at the beginning
           }
+
+          let nextIndex = input.index(after: lastWordStartIndex) // Calculate next index
           let lastWord = String(input[lastWordStartIndex...]) // Extract the last word
+
+          // Check if the word is ignored or learned
+          if self.sharedTextChecker.ignoredWords?.contains(lastWord) == true || UITextChecker.hasLearnedWord(lastWord) {
+            continuation.resume(returning: [])
+            return
+          }
+
           let range = NSRange(location: lastWordStartIndex.utf16Offset(in: input), length: lastWord.utf16.count)
 
-          // Check for misspellings in the last word
-          let misspelledRange = self.sharedTextChecker.rangeOfMisspelledWord(
-            in: input,
-            range: range,
-            startingAt: 0,
-            wrap: false,
-            language: language
-          )
-
-          if misspelledRange.location == NSNotFound {
-            // Word is correct, no completions needed
-            continuation.resume(returning: [])
-          } else {
-            // Get suggestions for the misspelled word
-            let suggestions = self.sharedTextChecker.guesses(forWordRange: misspelledRange, in: input, language: language) ?? []
-            continuation.resume(returning: suggestions)
-          }
+          // Get suggestions for the misspelled word
+          let completions = self.sharedTextChecker.completions(forPartialWordRange: range, in: input, language: language) ?? []
+          continuation.resume(returning: completions)
         }
       }
     }
@@ -140,26 +131,53 @@ public class ExpoSpellcheckerModule: Module {
       }
     }
 
-    // Defines a JavaScript function that always returns a Promise and whose native code
-    // is by default dispatched on the different thread than the JavaScript runtime runs on.
-    AsyncFunction("setValueAsync") { (value: String) in
-      // Send an event to JavaScript.
-      self.sendEvent("onChange", [
-        "value": value
-      ])
-    }
-
     // Enables the module to be used as a native view. Definition components that are accepted as part of the
     // view definition: Prop, Events.
     View(ExpoSpellcheckerView.self) {
-      // Defines a setter for the `url` prop.
-      Prop("url") { (view: ExpoSpellcheckerView, url: URL) in
-        if view.webView.url != url {
-          view.webView.load(URLRequest(url: url))
+      // Property for keyboardType
+      Prop("keyboardType") { (view: ExpoSpellcheckerView, type: String) in
+        switch type.lowercased() {
+        case "default":
+          view.textField.keyboardType = .default
+        case "asciiCapable":
+          view.textField.keyboardType = .asciiCapable
+        case "numbersAndPunctuation":
+          view.textField.keyboardType = .numbersAndPunctuation
+        case "url":
+          view.textField.keyboardType = .URL
+        case "numberPad":
+          view.textField.keyboardType = .numberPad
+        case "phonePad":
+          view.textField.keyboardType = .phonePad
+        case "emailAddress":
+          view.textField.keyboardType = .emailAddress
+        case "decimalPad":
+          view.textField.keyboardType = .decimalPad
+        case "webSearch":
+          view.textField.keyboardType = .webSearch
+        default:
+          view.textField.keyboardType = .default
         }
       }
-
-      Events("onLoad")
+      
+      // Property for spellCheckingType
+      Prop("spellCheckingType") { (view: ExpoSpellcheckerView, enabled: Bool) in
+        view.textField.spellCheckingType = enabled ? .yes : .no
+      }
+      
+      // Property for autocorrectionType
+      Prop("autocorrectionType") { (view: ExpoSpellcheckerView, enabled: Bool) in
+        view.textField.autocorrectionType = enabled ? .yes : .no
+      }
+      
+      // Property to hide the keyboard
+      Prop("hidden") { (view: ExpoSpellcheckerView, hidden: Bool) in
+        if hidden {
+          view.textField.inputView = UIView() // Hides the keyboard
+        } else {
+          view.textField.inputView = nil // Restores default keyboard
+        }
+      }
     }
   }
 }

@@ -3,8 +3,6 @@ import { NativeModule, requireNativeModule } from "expo";
 import { ExpoSpellcheckerModuleEvents } from "./ExpoSpellchecker.types";
 
 declare class ExpoSpellcheckerModule extends NativeModule<ExpoSpellcheckerModuleEvents> {
-  PI: number;
-  hello(): string;
   checkSpelling(word: string, language: string): Promise<string[]>;
   getCompletions(sentence: string, language: string): Promise<string[]>;
 
@@ -23,8 +21,6 @@ declare class ExpoSpellcheckerModule extends NativeModule<ExpoSpellcheckerModule
   hasLearnedWord(word: string): Promise<boolean>;
 
   getAvailableLanguages(): Promise<string[]>;
-
-  setValueAsync(value: string): Promise<void>;
 }
 
 // This call loads the native module object from the JSI.

@@ -1,9 +1,7 @@
-import { useEvent } from "expo";
 import ExpoSpellchecker, { ExpoSpellcheckerView } from "expo-spellchecker";
 import { useEffect, useState } from "react";
 import {
   Button,
-  Keyboard,
   SafeAreaView,
   ScrollView,
   Text,
@@ -12,29 +10,20 @@ import {
 } from "react-native";
 
 export default function App() {
-  useEffect(() => {
-    // Add listener for "keyboardWillShow"
-    const keyboardWillShowListener = Keyboard.addListener(
-      "keyboardWillShow",
-      () => {
-        Keyboard.dismiss(); // Dismiss the keyboard when it is about to show
-        console.log("Keyboard will show, dismissed it!");
-      }
-    );
-
-    // Clean up the listener on component unmount
-    return () => {
-      keyboardWillShowListener.remove();
-    };
-  }, []);
-
-  const onChangePayload = useEvent(ExpoSpellchecker, "onChange");
-
   const [word, setWord] = useState<string>("");
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [completions, setCompletions] = useState<string[]>([]);
+  const [learnedWords, setLearnedWords] = useState<string[]>([]);
+  const [ignoredWords, setIgnoredWords] = useState<string[]>([]);
   const [loading, setLoading] = useState<boolean>(false); // State to track loading status
   const [output, setOutput] = useState<string>("");
+
+  // Fetch the ignored words on component mount
+  useEffect(() => {
+    ExpoSpellchecker.getIgnoredWords()
+      .then((words) => setIgnoredWords(words))
+      .catch((error) => console.error("Error fetching ignored words:", error));
+  }, [ignoredWords]);
 
   const handleCheckSpelling = async () => {
     try {
@@ -46,10 +35,6 @@ export default function App() {
     } finally {
       setLoading(false); // Hide loading indicator
     }
-  };
-
-  const handleAddWord = () => {
-    setWord("Hte");
   };
 
   const handleGetCompletions = async () => {
@@ -66,8 +51,13 @@ export default function App() {
 
   const handleLearnWord = async () => {
     try {
-      console.log("handleLearnWord");
       await ExpoSpellchecker.learnWord(word); // Wait for the word to be learned
+
+      if (!learnedWords.includes(word)) {
+        learnedWords.push(word);
+        setLearnedWords(learnedWords);
+      }
+
       const isLearned = await ExpoSpellchecker.hasLearnedWord(word); // Await the promise to get the boolean
       logOutput("hasLearnedWord: " + isLearned);
     } catch (error) {
@@ -77,8 +67,12 @@ export default function App() {
 
   const handleUnlearnWord = async () => {
     try {
-      console.log("handleUnlearnWord");
       await ExpoSpellchecker.unlearnWord(word); // Wait for the word to be unlearned
+      if (learnedWords.includes(word)) {
+        learnedWords.splice(learnedWords.indexOf(word), 1);
+        setLearnedWords(learnedWords);
+      }
+
       const isLearned = await ExpoSpellchecker.hasLearnedWord(word); // Await the promise to get the boolean
       logOutput("hasLearnedWord: " + isLearned);
     } catch (error) {
@@ -88,9 +82,8 @@ export default function App() {
 
   const handleIgnoreWord = async () => {
     try {
-      console.log("handleIgnoreWord");
       await ExpoSpellchecker.ignoreWord(word); // Wait for the word to be ignored
-      const ignoredWords = await ExpoSpellchecker.getIgnoredWords(); // Await the promise to get the string[]
+
       logOutput("ignoredWords: " + ignoredWords);
     } catch (error) {
       console.error("Error in handleIgnoreWord:", error);
@@ -115,13 +108,7 @@ export default function App() {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.container}>
-        <Text style={styles.header}>Module API Example</Text>
-        <Group name="Constants">
-          <Text>{ExpoSpellchecker.PI}</Text>
-        </Group>
-        <Group name="Functions">
-          <Text>{ExpoSpellchecker.hello()}</Text>
-        </Group>
+        <Text style={styles.header}>Module Test Examples</Text>
         <Group name="Spell Checking">
           <View style={styles.container}>
             <TextInput
@@ -130,11 +117,6 @@ export default function App() {
               value={word}
               onChangeText={setWord}
               showSoftInputOnFocus={false}
-            />
-            <Button
-              title="Add Word"
-              onPress={handleAddWord}
-              disabled={!loading && word.trim() !== ""} // Disable button when loading or input is empty
             />
             <Button
               title="Check Spelling"
@@ -172,7 +154,6 @@ export default function App() {
         </Group>
         <Group name="Other Functions">
           <View style={styles.container}>
-            <Text style={styles.title}>Other Functions</Text>
             <Button
               title="Get Available Languages"
               onPress={testAvailableLanguages}
@@ -180,11 +161,6 @@ export default function App() {
             <Button title="Learn Word" onPress={handleLearnWord} />
             <Button title="Unlearn Word" onPress={handleUnlearnWord} />
             <Button title="Ignore Word" onPress={handleIgnoreWord} />
-          </View>
-        </Group>
-
-        <Group name="Output">
-          <View style={styles.container}>
             <ScrollView
               style={styles.outputContainer}
               keyboardShouldPersistTaps="handled"
@@ -195,23 +171,29 @@ export default function App() {
           </View>
         </Group>
 
-        <Group name="Async functions">
-          <Button
-            title="Set value"
-            onPress={async () => {
-              await ExpoSpellchecker.setValueAsync("Hello from JS!");
-            }}
-          />
+        <Group name="IgnoredWords">
+          <View style={styles.container}>
+            <ScrollView
+              style={styles.outputContainer}
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={{ flex: 1, height: 500 }}
+            >
+              <Text style={styles.output}>{ignoredWords}</Text>
+            </ScrollView>
+          </View>
         </Group>
-        <Group name="Events">
-          <Text>{onChangePayload?.value}</Text>
-        </Group>
-        <Group name="Views">
-          <ExpoSpellcheckerView
-            url="https://www.example.com"
-            onLoad={({ nativeEvent: { url } }) => console.log(`Loaded: ${url}`)}
-            style={styles.view}
-          />
+
+        <Group name="View">
+          <View style={styles.container}>
+            <Text style={styles.label}>Type something below:</Text>
+            <ExpoSpellcheckerView
+              keyboardType="emailAddress" // Change to "emailAddress", "numberPad", etc. to test different types
+              spellCheckingType={true} // Enable spell checking
+              autocorrectionType={false} // Enable autocorrection
+              hidden={true} // Set to true to hide the keyboard
+              style={styles.view}
+            />
+          </View>
         </Group>
       </ScrollView>
     </SafeAreaView>
@@ -231,6 +213,10 @@ const styles = {
   header: {
     fontSize: 30,
     margin: 20,
+  },
+  label: {
+    fontSize: 16,
+    marginBottom: 8,
   },
   groupHeader: {
     fontSize: 20,

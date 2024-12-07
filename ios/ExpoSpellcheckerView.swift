@@ -1,38 +1,31 @@
 import ExpoModulesCore
-import WebKit
+import UIKit
 
 // This view will be used as a native component. Make sure to inherit from `ExpoView`
-// to apply the proper styling (e.g. border radius and shadows).
 class ExpoSpellcheckerView: ExpoView {
-  let webView = WKWebView()
+  let textField = UITextField()
   let onLoad = EventDispatcher()
-  var delegate: WebViewDelegate?
-
+  
   required init(appContext: AppContext? = nil) {
     super.init(appContext: appContext)
     clipsToBounds = true
-    delegate = WebViewDelegate { url in
-      self.onLoad(["url": url])
-    }
-    webView.navigationDelegate = delegate
-    addSubview(webView)
+    
+    // Setup the UITextField
+    textField.borderStyle = .roundedRect
+    textField.translatesAutoresizingMaskIntoConstraints = false
+    addSubview(textField)
+    
+    // Constraints for UITextField to fill the view
+    NSLayoutConstraint.activate([
+      textField.leadingAnchor.constraint(equalTo: leadingAnchor),
+      textField.trailingAnchor.constraint(equalTo: trailingAnchor),
+      textField.topAnchor.constraint(equalTo: topAnchor),
+      textField.bottomAnchor.constraint(equalTo: bottomAnchor)
+    ])
   }
-
+  
   override func layoutSubviews() {
-    webView.frame = bounds
-  }
-}
-
-class WebViewDelegate: NSObject, WKNavigationDelegate {
-  let onUrlChange: (String) -> Void
-
-  init(onUrlChange: @escaping (String) -> Void) {
-    self.onUrlChange = onUrlChange
-  }
-
-  func webView(_ webView: WKWebView, didFinish navigation: WKNavigation) {
-    if let url = webView.url {
-      onUrlChange(url.absoluteString)
-    }
+    super.layoutSubviews()
+    textField.frame = bounds
   }
 }
