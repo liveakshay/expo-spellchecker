@@ -1,8 +1,6 @@
 import { NativeModule, requireNativeModule } from "expo";
 
-import { ExpoSpellcheckerModuleEvents } from "./ExpoSpellchecker.types";
-
-declare class ExpoSpellcheckerModule extends NativeModule<ExpoSpellcheckerModuleEvents> {
+declare class ExpoSpellcheckerModule extends NativeModule {
   checkSpelling(word: string, language: string): Promise<string[]>;
   getCompletions(sentence: string, language: string): Promise<string[]>;
 
