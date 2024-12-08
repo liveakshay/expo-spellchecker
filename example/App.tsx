@@ -183,7 +183,7 @@ export default function App() {
           </View>
         </Group>
 
-        <Group name="View">
+        {/* <Group name="View">
           <View style={styles.container}>
             <Text style={styles.label}>Type something below:</Text>
             <ExpoSpellcheckerView
@@ -194,7 +194,7 @@ export default function App() {
               style={styles.view}
             />
           </View>
-        </Group>
+        </Group> */}
       </ScrollView>
     </SafeAreaView>
   );
