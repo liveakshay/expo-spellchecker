@@ -129,7 +129,7 @@ export default function App() {
                 onChangeText={setWord}
                 multiline
                 numberOfLines={4}
-                showSoftInputOnFocus={false}
+                // showSoftInputOnFocus={false}
                 spellCheck={false}
                 autoComplete="off"
                 autoCorrect={false}
