@@ -1,7 +1,10 @@
-import ExpoSpellchecker, { ExpoSpellcheckerView } from "expo-spellchecker";
+import ExpoSpellchecker from "expo-spellchecker";
 import { useEffect, useState } from "react";
 import {
   Button,
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
   SafeAreaView,
   ScrollView,
   Text,
@@ -106,84 +109,97 @@ export default function App() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.container}>
-        <Text style={styles.header}>Module Test Examples</Text>
-        <Group name="Spell Checking">
-          <View style={styles.container}>
-            <TextInput
-              style={styles.input}
-              placeholder="Enter a word"
-              value={word}
-              onChangeText={setWord}
-              showSoftInputOnFocus={false}
-            />
-            <Button
-              title="Check Spelling"
-              onPress={handleCheckSpelling}
-              disabled={loading || word.trim() === ""} // Disable button when loading or input is empty
-            />
-            <Button
-              title="Get Completions"
-              onPress={handleGetCompletions}
-              disabled={loading || word.trim() === ""} // Disable button when loading or input is empty
-            />
-            {loading && <Text>Checking spelling...</Text>}
-            {suggestions.length > 0 && (
-              <View style={styles.suggestionsContainer}>
-                <Text>Suggestions:</Text>
-                {suggestions.map((suggestion, index) => (
-                  <Text key={index} style={styles.suggestion}>
-                    {suggestion}
-                  </Text>
-                ))}
-              </View>
-            )}
-            {loading && <Text>Getting completions...</Text>}
-            {completions.length > 0 && (
-              <View style={styles.suggestionsContainer}>
-                <Text>Completions:</Text>
-                {completions.map((completion, index) => (
-                  <Text key={index} style={styles.suggestion}>
-                    {completion}
-                  </Text>
-                ))}
-              </View>
-            )}
-          </View>
-        </Group>
-        <Group name="Other Functions">
-          <View style={styles.container}>
-            <Button
-              title="Get Available Languages"
-              onPress={testAvailableLanguages}
-            />
-            <Button title="Learn Word" onPress={handleLearnWord} />
-            <Button title="Unlearn Word" onPress={handleUnlearnWord} />
-            <Button title="Ignore Word" onPress={handleIgnoreWord} />
-            <ScrollView
-              style={styles.outputContainer}
-              keyboardShouldPersistTaps="handled"
-              contentContainerStyle={{ flex: 1, height: 500 }}
-            >
-              <Text style={styles.output}>{output}</Text>
-            </ScrollView>
-          </View>
-        </Group>
+    <SafeAreaView style={[styles.container, { flex: 1 }]}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={{ flex: 1 }}
+      >
+        <ScrollView
+          style={styles.container}
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={{ flexGrow: 1 }}
+        >
+          <Text style={styles.header}>Module Test Examples</Text>
+          <Group name="Spell Checking">
+            <View style={styles.container}>
+              <TextInput
+                style={styles.input}
+                placeholder="Enter a word"
+                value={word}
+                onChangeText={setWord}
+                multiline
+                numberOfLines={4}
+                showSoftInputOnFocus={false}
+                spellCheck={false}
+                autoComplete="off"
+                autoCorrect={false}
+              />
+              <Button
+                title="Check Spelling"
+                onPress={handleCheckSpelling}
+                disabled={loading || word.trim() === ""} // Disable button when loading or input is empty
+              />
+              <Button
+                title="Get Completions"
+                onPress={handleGetCompletions}
+                disabled={loading || word.trim() === ""} // Disable button when loading or input is empty
+              />
+              {loading && <Text>Checking spelling...</Text>}
+              {suggestions.length > 0 && (
+                <View style={styles.suggestionsContainer}>
+                  <Text>Suggestions:</Text>
+                  {suggestions.map((suggestion, index) => (
+                    <Text key={index} style={styles.suggestion}>
+                      {suggestion}
+                    </Text>
+                  ))}
+                </View>
+              )}
+              {loading && <Text>Getting completions...</Text>}
+              {completions.length > 0 && (
+                <View style={styles.suggestionsContainer}>
+                  <Text>Completions:</Text>
+                  {completions.map((completion, index) => (
+                    <Text key={index} style={styles.suggestion}>
+                      {completion}
+                    </Text>
+                  ))}
+                </View>
+              )}
+            </View>
+          </Group>
+          <Group name="Other Functions">
+            <View style={styles.container}>
+              <Button
+                title="Get Available Languages"
+                onPress={testAvailableLanguages}
+              />
+              <Button title="Learn Word" onPress={handleLearnWord} />
+              <Button title="Unlearn Word" onPress={handleUnlearnWord} />
+              <Button title="Ignore Word" onPress={handleIgnoreWord} />
+              <ScrollView
+                style={styles.outputContainer}
+                // keyboardShouldPersistTaps="handled"
+                contentContainerStyle={{ flex: 1, height: 500 }}
+              >
+                <Text style={styles.output}>{output}</Text>
+              </ScrollView>
+            </View>
+          </Group>
 
-        <Group name="IgnoredWords">
-          <View style={styles.container}>
-            <ScrollView
-              style={styles.outputContainer}
-              keyboardShouldPersistTaps="handled"
-              contentContainerStyle={{ flex: 1, height: 500 }}
-            >
-              <Text style={styles.output}>{ignoredWords}</Text>
-            </ScrollView>
-          </View>
-        </Group>
+          <Group name="IgnoredWords">
+            <View style={styles.container}>
+              <ScrollView
+                style={styles.outputContainer}
+                // keyboardShouldPersistTaps="handled"
+                contentContainerStyle={{ flex: 1, height: 500 }}
+              >
+                <Text style={styles.output}>{ignoredWords}</Text>
+              </ScrollView>
+            </View>
+          </Group>
 
-        {/* <Group name="View">
+          {/* <Group name="View">
           <View style={styles.container}>
             <Text style={styles.label}>Type something below:</Text>
             <ExpoSpellcheckerView
@@ -195,7 +211,8 @@ export default function App() {
             />
           </View>
         </Group> */}
-      </ScrollView>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -226,6 +243,7 @@ const styles = {
     margin: 20,
     backgroundColor: "#fff",
     borderRadius: 10,
+    borderWidth: 1,
     padding: 20,
   },
   container: { flex: 1, flexGrow: 1, padding: 16, backgroundColor: "#fff" },
@@ -234,9 +252,10 @@ const styles = {
     height: 200,
   },
   input: {
-    height: 40,
+    height: 100,
     borderColor: "gray",
     borderWidth: 1,
+    borderRadius: 10,
     paddingHorizontal: 8,
     marginBottom: 16,
   },

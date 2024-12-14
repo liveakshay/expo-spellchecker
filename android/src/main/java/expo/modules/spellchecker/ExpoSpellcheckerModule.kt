@@ -34,7 +34,7 @@ class ExpoSpellcheckerModule : Module(), SpellCheckerSession.SpellCheckerSession
             if (ignoredWords.contains(lastWord) || isWordInDatabase(lastWord)) {
                 emptyList<String>()
             } else {
-                runBlocking { getSentenceSuggestionsAsync(input) }
+                runBlocking { getSentenceSuggestionsAsync(lastWord) }
             }
         }
 
@@ -44,7 +44,7 @@ class ExpoSpellcheckerModule : Module(), SpellCheckerSession.SpellCheckerSession
             if (ignoredWords.contains(lastWord) || isWordInDatabase(lastWord)) {
                 emptyList<String>()
             } else {
-                runBlocking { getSentenceSuggestionsAsync(input) }
+                runBlocking { getSentenceSuggestionsAsync(lastWord) }
             }
         }
 
@@ -154,9 +154,19 @@ class ExpoSpellcheckerModule : Module(), SpellCheckerSession.SpellCheckerSession
 
     private suspend fun getSentenceSuggestionsAsync(input: String): List<String> {
         spellCheckDeferred = CompletableDeferred()
-        spellCheckerSession?.getSentenceSuggestions(arrayOf(TextInfo(input)), 10)
+        spellCheckerSession?.getSuggestions(TextInfo(input)), 10)
         return spellCheckDeferred?.await() ?: emptyList()
     }
+
+    // private suspend fun getSentenceSuggestionsAsync(input: String): List<String> {
+    //     spellCheckDeferred = CompletableDeferred()
+
+    //     val lastWord = extractLastWord(input)
+    //     val textInfo = TextInfo(input, input.lastIndexOf(lastWord), input.length)
+        
+    //     spellCheckerSession?.getSentenceSuggestions(arrayOf(textInfo), 10)
+    //     return spellCheckDeferred?.await() ?: emptyList()
+    // }
 
     override fun onGetSuggestions(results: Array<out SuggestionsInfo>?) {
         val suggestions = results?.flatMap { info ->
