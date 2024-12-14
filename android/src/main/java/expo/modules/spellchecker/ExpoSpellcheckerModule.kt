@@ -154,7 +154,7 @@ class ExpoSpellcheckerModule : Module(), SpellCheckerSession.SpellCheckerSession
 
     private suspend fun getSentenceSuggestionsAsync(input: String): List<String> {
         spellCheckDeferred = CompletableDeferred()
-        spellCheckerSession?.getSuggestions(TextInfo(input)), 10)
+        spellCheckerSession?.getSuggestions(TextInfo(input), 10)
         return spellCheckDeferred?.await() ?: emptyList()
     }
 
