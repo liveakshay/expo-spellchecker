@@ -29,9 +29,9 @@ class ExpoSpellcheckerModule : Module(), SpellCheckerSession.SpellCheckerSession
         Name("ExpoSpellchecker")
 
         AsyncFunction("checkSpelling") { input: String, language: String ->
-            val lastWord = extractLastWord(input).lowercase()
+            val lastWord = extractLastWord(input)
 
-            if (ignoredWords.contains(lastWord) || isWordInDatabase(lastWord)) {
+            if (ignoredWords.contains(lastWord.lowercase()) || isWordInDatabase(lastWord)) {
                 emptyList<String>()
             } else {
                 runBlocking { getSentenceSuggestionsAsync(lastWord) }
@@ -39,9 +39,9 @@ class ExpoSpellcheckerModule : Module(), SpellCheckerSession.SpellCheckerSession
         }
 
         AsyncFunction("getCompletions") { input: String, language: String ->
-            val lastWord = extractLastWord(input).lowercase()
+            val lastWord = extractLastWord(input)
 
-            if (ignoredWords.contains(lastWord) || isWordInDatabase(lastWord)) {
+            if (ignoredWords.contains(lastWord.lowercase()) || isWordInDatabase(lastWord)) {
                 emptyList<String>()
             } else {
                 runBlocking { getSentenceSuggestionsAsync(lastWord) }
@@ -88,7 +88,7 @@ class ExpoSpellcheckerModule : Module(), SpellCheckerSession.SpellCheckerSession
         }
 
         AsyncFunction("hasLearnedWord") { word: String ->
-            isWordInDatabase(word.lowercase())
+            isWordInDatabase(word)
         }
 
         AsyncFunction("getAvailableLanguages") { ->
