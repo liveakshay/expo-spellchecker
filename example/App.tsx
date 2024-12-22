@@ -11,6 +11,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { Picker } from "@react-native-picker/picker";
 
 export default function App() {
   const [word, setWord] = useState<string>("");
@@ -20,6 +21,7 @@ export default function App() {
   const [ignoredWords, setIgnoredWords] = useState<string[]>([]);
   const [loading, setLoading] = useState<boolean>(false); // State to track loading status
   const [output, setOutput] = useState<string>("");
+  const [selectedLanguage, setSelectedLanguage] = useState("java");
 
   // Fetch the ignored words on component mount
   useEffect(() => {
@@ -31,7 +33,11 @@ export default function App() {
   const handleCheckSpelling = async () => {
     try {
       setLoading(true); // Show loading indicator
-      const results = await ExpoSpellchecker.checkSpelling(word, "en"); // Async call to check spelling
+      // console.log("word.toUpperCase()", word.toUpperCase());
+      const results = await ExpoSpellchecker.checkSpelling(
+        word,
+        selectedLanguage
+      ); // Async call to check spelling
       setSuggestions(results); // Update suggestions state
     } catch (error) {
       console.error("Error checking spelling:", error);
@@ -43,7 +49,10 @@ export default function App() {
   const handleGetCompletions = async () => {
     try {
       setLoading(true); // Show loading indicator
-      const results = await ExpoSpellchecker.getCompletions(word, "en"); // Async call to check spelling
+      const results = await ExpoSpellchecker.getCompletions(
+        word,
+        selectedLanguage
+      ); // Async call to check spelling
       setCompletions(results); // Update suggestions state
     } catch (error) {
       console.error("Error checking spelling:", error);
@@ -134,6 +143,17 @@ export default function App() {
                 autoComplete="off"
                 autoCorrect={false}
               />
+              <Picker
+                selectedValue={selectedLanguage}
+                onValueChange={(itemValue, itemIndex) =>
+                  setSelectedLanguage(itemValue)
+                }
+                style={{ height: 50, width: 150 }}
+              >
+                <Picker.Item label="English" value="en" />
+                <Picker.Item label="French" value="fr" />
+                <Picker.Item label="Spanish" value="es" />
+              </Picker>
               <Button
                 title="Check Spelling"
                 onPress={handleCheckSpelling}
