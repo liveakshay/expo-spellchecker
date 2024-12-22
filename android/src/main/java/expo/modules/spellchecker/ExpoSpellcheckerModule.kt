@@ -12,17 +12,10 @@ import kotlinx.coroutines.runBlocking
 import java.net.URL
 import android.net.Uri
 
-import kotlinx.coroutines.delay
-import java.util.Locale
 import android.Manifest
 import android.content.pm.PackageManager
 
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-
-
 class ExpoSpellcheckerModule : Module(), SpellCheckerSession.SpellCheckerSessionListener {
-    private var lang: String = ""
     private var spellCheckerSession: SpellCheckerSession? = null
 
     private lateinit var dbHelper: LearnedWordsDBHelper
@@ -36,23 +29,6 @@ class ExpoSpellcheckerModule : Module(), SpellCheckerSession.SpellCheckerSession
         Name("ExpoSpellchecker")
 
         AsyncFunction("checkSpelling") { input: String, language: String ->
-
-            if (lang != language) {
-                Log.d("[ExpoSpellchecker], checkSpelling,", "changing language from $lang to $language")
-                runBlocking { 
-                    withContext(Dispatchers.Main) {
-                        val textServicesManager = appContext.reactContext?.getSystemService(Context.TEXT_SERVICES_MANAGER_SERVICE) as? TextServicesManager
-
-                        spellCheckerSession?.close()
-                        // Ensure session initialization on the main thread
-                        spellCheckerSession = textServicesManager?.newSpellCheckerSession(
-                            null, Locale(language), this@ExpoSpellcheckerModule, false
-                        )
-                    }
-                }
-                lang = language
-            }
-
             val lastWord = extractLastWord(input)
 
             if (ignoredWords.contains(lastWord.lowercase()) || isWordInDatabase(lastWord)) {
@@ -115,8 +91,28 @@ class ExpoSpellcheckerModule : Module(), SpellCheckerSession.SpellCheckerSession
             isWordInDatabase(word)
         }
 
-        AsyncFunction("getAvailableLanguages") {
-            getAvailableLanguagesImpl()
+        AsyncFunction("getAvailableLanguages") { ->
+            val textServicesManager = appContext.reactContext?.getSystemService(Context.TEXT_SERVICES_MANAGER_SERVICE) as? TextServicesManager
+            val spellCheckerInfo = textServicesManager?.getCurrentSpellCheckerInfo()
+            
+            if (spellCheckerInfo != null) {
+                val spellCheckerLanguages = mutableListOf<String>()
+                val count = spellCheckerInfo.subtypeCount
+                
+                for (i in 0 until count) {
+                    val subtype = spellCheckerInfo.getSubtypeAt(i)
+                    val languageTag = subtype.locale
+                    
+                    if (!languageTag.isNullOrEmpty()) {
+                        spellCheckerLanguages.add(languageTag)
+                    }
+                }
+                
+                return@AsyncFunction spellCheckerLanguages
+            }
+            
+            // Return a list with the default locale if no spell checker is available
+            listOf(java.util.Locale.getDefault().language)
         }
 
         View(ExpoSpellcheckerView::class) {
@@ -144,39 +140,16 @@ class ExpoSpellcheckerModule : Module(), SpellCheckerSession.SpellCheckerSession
             dbHelper = LearnedWordsDBHelper(appContext.reactContext!!)
             database = dbHelper.writableDatabase
 
-            // val textServicesManager = appContext.reactContext?.getSystemService(Context.TEXT_SERVICES_MANAGER_SERVICE) as? TextServicesManager
-            // spellCheckerSession = textServicesManager?.newSpellCheckerSession(
-            //     null, null, this@ExpoSpellcheckerModule, true
-            // )
-            // Log.d("[ExpoSpellchecker], onCreate,", "spellCheckerSession $spellCheckerSession")
+            val textServicesManager = appContext.reactContext?.getSystemService(Context.TEXT_SERVICES_MANAGER_SERVICE) as? TextServicesManager
+            spellCheckerSession = textServicesManager?.newSpellCheckerSession(
+                null, null, this@ExpoSpellcheckerModule, true
+            )
         }
 
         OnDestroy {
             database.close()
             spellCheckerSession?.close()
         }
-    }
-
-    private fun printSpellCheckerInfo(info: SpellCheckerInfo) {
-        Log.d("[ExpoSpellchecker], printSpellCheckerInfo, ", """
-            Spell Checker Info:
-            -------------------
-            ID: ${info.id}
-            Package Name: ${info.packageName}
-            Service Name: ${info.serviceInfo}
-            Settings Activity: ${info.settingsActivity ?: "None"}
-            Subtype Count: ${info.subtypeCount}
-        """.trimIndent())
-
-        // for (i in 0 until info.subtypeCount) {
-        //     val subtype: SpellCheckerSubtype = info.getSubtypeAt(i)
-        //     Log.d("[ExpoSpellchecker], printSpellCheckerInfo, ", """
-        //         Subtype #$i:
-        //         Locale: ${subtype.locale}
-        //         LanguageTag: ${subtype.languageTag}
-        //         Extra Value: ${subtype.extraValue}
-        //     """.trimIndent())
-        // }
     }
 
     private suspend fun getSentenceSuggestionsAsync(input: String): List<String> {
@@ -203,14 +176,12 @@ class ExpoSpellcheckerModule : Module(), SpellCheckerSession.SpellCheckerSession
     }
 
     override fun onGetSentenceSuggestions(results: Array<out SentenceSuggestionsInfo>?) {
-
         val completions = results?.flatMap { sentenceSuggestionsInfo ->
             (0 until sentenceSuggestionsInfo.suggestionsCount).flatMap { i ->
                 val suggestionsInfo = sentenceSuggestionsInfo.getSuggestionsInfoAt(i)
                 (0 until suggestionsInfo.suggestionsCount).map { suggestionsInfo.getSuggestionAt(it) }
             }
         }.orEmpty()
-
         spellCheckDeferred?.complete(completions)
     }
 
@@ -233,31 +204,6 @@ class ExpoSpellcheckerModule : Module(), SpellCheckerSession.SpellCheckerSession
         return frequency
     }
 
-    // Private function for internal use
-    private fun getAvailableLanguagesImpl(): List<String> {
-        val textServicesManager = appContext.reactContext?.getSystemService(Context.TEXT_SERVICES_MANAGER_SERVICE) as? TextServicesManager
-        val spellCheckerInfo = textServicesManager?.getCurrentSpellCheckerInfo()
-
-        if (spellCheckerInfo != null) {
-            val spellCheckerLanguages = mutableListOf<String>()
-            val count = spellCheckerInfo.subtypeCount
-
-            for (i in 0 until count) {
-                val subtype = spellCheckerInfo.getSubtypeAt(i)
-                val languageTag = subtype.locale
-
-                if (!languageTag.isNullOrEmpty()) {
-                    spellCheckerLanguages.add(languageTag)
-                }
-            }
-
-            return spellCheckerLanguages
-        }
-
-        // Return a list with the default locale if no spell checker is available
-        return listOf(java.util.Locale.getDefault().language)
-    }
-    
     private fun isWordInDatabase(word: String): Boolean {
         val lowercaseWord = word.lowercase()
         val cursor = database.query(

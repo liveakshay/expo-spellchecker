@@ -21,7 +21,7 @@ export default function App() {
   const [ignoredWords, setIgnoredWords] = useState<string[]>([]);
   const [loading, setLoading] = useState<boolean>(false); // State to track loading status
   const [output, setOutput] = useState<string>("");
-  const [selectedLanguage, setSelectedLanguage] = useState("java");
+  const [selectedLanguage, setSelectedLanguage] = useState("en");
 
   // Fetch the ignored words on component mount
   useEffect(() => {
@@ -33,11 +33,12 @@ export default function App() {
   const handleCheckSpelling = async () => {
     try {
       setLoading(true); // Show loading indicator
-      // console.log("word.toUpperCase()", word.toUpperCase());
+      console.log("word.toUpperCase()", word.toUpperCase());
       const results = await ExpoSpellchecker.checkSpelling(
         word,
         selectedLanguage
       ); // Async call to check spelling
+      console.log("results", results);
       setSuggestions(results); // Update suggestions state
     } catch (error) {
       console.error("Error checking spelling:", error);
@@ -148,7 +149,7 @@ export default function App() {
                 onValueChange={(itemValue, itemIndex) =>
                   setSelectedLanguage(itemValue)
                 }
-                style={{ height: 50, width: 150 }}
+                style={{ flex: 1 }}
               >
                 <Picker.Item label="English" value="en" />
                 <Picker.Item label="French" value="fr" />
