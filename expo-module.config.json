@@ -1,4 +1,5 @@
 {
+  "name": "expo-spellchecker",
   "platforms": [
     "apple",
     "android"

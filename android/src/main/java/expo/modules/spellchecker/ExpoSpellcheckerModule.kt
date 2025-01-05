@@ -115,27 +115,6 @@ class ExpoSpellcheckerModule : Module(), SpellCheckerSession.SpellCheckerSession
             listOf(java.util.Locale.getDefault().language)
         }
 
-        View(ExpoSpellcheckerView::class) {
-            // Register props from TypeScript
-            Prop("keyboardType") { view: ExpoSpellcheckerView, type: String? ->
-                view.setKeyboardType(type)
-            }
-
-            Prop("spellCheckingType") { view: ExpoSpellcheckerView, enabled: Boolean ->
-                view.setSpellCheckingType(enabled)
-            }
-
-            Prop("autocorrectionType") { view: ExpoSpellcheckerView, enabled: Boolean ->
-                view.setAutocorrectionType(enabled)
-            }
-
-            Prop("hidden") { view: ExpoSpellcheckerView, hidden: Boolean ->
-                view.setHidden(hidden)
-            }
-
-            Events("onLoad")
-        }
-
         OnCreate {
             dbHelper = LearnedWordsDBHelper(appContext.reactContext!!)
             database = dbHelper.writableDatabase

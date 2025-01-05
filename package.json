@@ -2,7 +2,7 @@
   "name": "expo-spellchecker",
   "version": "1.0.0",
   "type": "module",
-  "description": "Expo module that exposes native spell-checker and auto-correct in iOS and Android to react-native apps via TypeScript interface.",
+  "description": "Expo module that exposes underlying native spell checker and word completion suggestions in iOS and Android - to react-native apps via TypeScript interface.",
   "main": "build/index.js",
   "types": "build/index.d.ts",
   "scripts": {
@@ -20,7 +20,11 @@
     "react-native",
     "expo",
     "expo-spellchecker",
-    "ExpoSpellchecker"
+    "ExpoSpellchecker",
+    "spellchecker",
+    "dictionary",
+    "word-completion",
+    "word-prediction"
   ],
   "repository": "https://github.com/liveakshay/expo-spellchecker",
   "bugs": {

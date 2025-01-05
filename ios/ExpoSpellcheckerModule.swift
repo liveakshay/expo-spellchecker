@@ -130,54 +130,5 @@ public class ExpoSpellcheckerModule: Module {
         UITextChecker.hasLearnedWord(word)
       }
     }
-
-    // Enables the module to be used as a native view. Definition components that are accepted as part of the
-    // view definition: Prop, Events.
-    View(ExpoSpellcheckerView.self) {
-      // Property for keyboardType
-      Prop("keyboardType") { (view: ExpoSpellcheckerView, type: String) in
-        switch type.lowercased() {
-        case "default":
-          view.textField.keyboardType = .default
-        case "asciiCapable":
-          view.textField.keyboardType = .asciiCapable
-        case "numbersAndPunctuation":
-          view.textField.keyboardType = .numbersAndPunctuation
-        case "url":
-          view.textField.keyboardType = .URL
-        case "numberPad":
-          view.textField.keyboardType = .numberPad
-        case "phonePad":
-          view.textField.keyboardType = .phonePad
-        case "emailAddress":
-          view.textField.keyboardType = .emailAddress
-        case "decimalPad":
-          view.textField.keyboardType = .decimalPad
-        case "webSearch":
-          view.textField.keyboardType = .webSearch
-        default:
-          view.textField.keyboardType = .default
-        }
-      }
-      
-      // Property for spellCheckingType
-      Prop("spellCheckingType") { (view: ExpoSpellcheckerView, enabled: Bool) in
-        view.textField.spellCheckingType = enabled ? .yes : .no
-      }
-      
-      // Property for autocorrectionType
-      Prop("autocorrectionType") { (view: ExpoSpellcheckerView, enabled: Bool) in
-        view.textField.autocorrectionType = enabled ? .yes : .no
-      }
-      
-      // Property to hide the keyboard
-      Prop("hidden") { (view: ExpoSpellcheckerView, hidden: Bool) in
-        if hidden {
-          view.textField.inputView = UIView() // Hides the keyboard
-        } else {
-          view.textField.inputView = nil // Restores default keyboard
-        }
-      }
-    }
   }
 }

@@ -2,7 +2,6 @@ import ExpoSpellchecker from "expo-spellchecker";
 import { useEffect, useState } from "react";
 import {
   Button,
-  Keyboard,
   KeyboardAvoidingView,
   Platform,
   SafeAreaView,
@@ -33,12 +32,12 @@ export default function App() {
   const handleCheckSpelling = async () => {
     try {
       setLoading(true); // Show loading indicator
-      console.log("word.toUpperCase()", word.toUpperCase());
+      // console.log("word.toUpperCase()", word.toUpperCase());
       const results = await ExpoSpellchecker.checkSpelling(
         word,
         selectedLanguage
       ); // Async call to check spelling
-      console.log("results", results);
+      // console.log("results", results);
       setSuggestions(results); // Update suggestions state
     } catch (error) {
       console.error("Error checking spelling:", error);
