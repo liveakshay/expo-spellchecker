@@ -1,6 +1,6 @@
 {
   "name": "expo-spellchecker",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "type": "module",
   "description": "Expo module that exposes underlying native spell checker and word completion suggestions in iOS and Android - to react-native apps via TypeScript interface.",
   "main": "build/index.js",
