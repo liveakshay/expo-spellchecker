@@ -1,7 +1,7 @@
 apply plugin: 'com.android.library'
 
 group = 'expo.modules.spellchecker'
-version = '0.1.0'
+version = '1.0.0'
 
 def expoModulesCorePlugin = new File(project(":expo-modules-core").projectDir.absolutePath, "ExpoModulesCorePlugin.gradle")
 apply from: expoModulesCorePlugin
@@ -35,9 +35,13 @@ android {
   namespace "expo.modules.spellchecker"
   defaultConfig {
     versionCode 1
-    versionName "0.1.0"
+    versionName "1.0.0"
   }
   lintOptions {
     abortOnError false
   }
+}
+
+dependencies {
+    implementation "expo.modules:core:1.0.0"
 }
