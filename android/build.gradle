@@ -41,7 +41,3 @@ android {
     abortOnError false
   }
 }
-
-dependencies {
-    implementation "expo.modules:core:1.0.0"
-}
