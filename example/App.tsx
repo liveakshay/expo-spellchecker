@@ -29,18 +29,43 @@ export default function App() {
       .catch((error) => console.error("Error fetching ignored words:", error));
   }, [ignoredWords]);
 
+  const checkSpellingWithTimeout = async (
+    input: string,
+    language: string,
+    timeoutMs: number
+  ) => {
+    // Create a timeout promise
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => {
+        reject(new Error("checkSpelling timed out"));
+      }, timeoutMs);
+    });
+
+    // Create a promise for checkSpelling
+    const checkSpellingPromise = new Promise<string[]>((resolve, reject) => {
+      // Replace this with your actual native module function
+      ExpoSpellchecker.checkSpelling(input, language)
+        .then(resolve)
+        .catch(reject);
+    });
+
+    // Use Promise.race to race the timeout and checkSpelling
+    return Promise.race([checkSpellingPromise, timeoutPromise]);
+  };
+
   const handleCheckSpelling = async () => {
     try {
       setLoading(true); // Show loading indicator
       // console.log("word.toUpperCase()", word.toUpperCase());
-      const results = await ExpoSpellchecker.checkSpelling(
+      const results = await checkSpellingWithTimeout(
         word,
-        selectedLanguage
-      ); // Async call to check spelling
+        selectedLanguage,
+        3000
+      );
       // console.log("results", results);
       setSuggestions(results); // Update suggestions state
     } catch (error) {
-      console.error("Error checking spelling:", error);
+      console.log("Error checking spelling:", error);
     } finally {
       setLoading(false); // Hide loading indicator
     }
@@ -151,8 +176,8 @@ export default function App() {
                 style={{ flex: 1 }}
               >
                 <Picker.Item label="English" value="en" />
-                <Picker.Item label="French" value="fr" />
                 <Picker.Item label="Spanish" value="es" />
+                <Picker.Item label="Greek" value="el" />
               </Picker>
               <Button
                 title="Check Spelling"
